@@ -15,6 +15,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { addTask } from "../../../redux/slices/taskSlice";
 import { notification } from "antd";
+import RichTextEditor from "../../editor/RichTextEditor";
 
 const CreateTaskModal = () => {
   const dispatch = useDispatch();
@@ -190,6 +191,10 @@ const CreateTaskModal = () => {
 
         <Form.Item label="Status" name="statusId" initialValue="todo">
           <Select options={statuses.map(getStatusOption)} />
+        </Form.Item>
+
+        <Form.Item label="Description" name="description">
+          <RichTextEditor />
         </Form.Item>
 
         <Form.Item label="Due Date" name="dueDate">
