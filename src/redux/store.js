@@ -16,5 +16,6 @@ export const store = configureStore({
 });
 
 store.subscribe(() => {
+  //run this callback whenever store changes
   saveTasks(store.getState().tasks.tasks);
 });
