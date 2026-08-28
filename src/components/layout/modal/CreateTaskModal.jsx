@@ -13,7 +13,9 @@ import {
   CircleCheckBig,
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
-import { addTask } from "../../../redux/slices/taskSlice";
+import { addTask, updateTask } from "../../../redux/slices/taskSlice";
+import { useEffect } from "react";
+import dayjs from "dayjs";
 import { notification } from "antd";
 import RichTextEditor from "../../editor/RichTextEditor";
 
@@ -23,7 +25,19 @@ const CreateTaskModal = () => {
   const open = useSelector((state) => state.modal.createTaskOpen);
   const statuses = useSelector((state) => state.status.statuses);
 
+  const editingTask = useSelector((state) => state.modal.editingTask);
+
   const [form] = Form.useForm();
+  useEffect(() => {
+    if (editingTask) {
+      form.setFieldsValue({
+        ...editingTask,
+        dueDate: editingTask.dueDate ? dayjs(editingTask.dueDate) : null,
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [editingTask, form]);
 
   const getStatusOption = (status) => {
     const icons = {
@@ -45,11 +59,11 @@ const CreateTaskModal = () => {
 
   return (
     <Modal
-      title="Create Task"
+      title={editingTask ? "Edit Task" : "Create Task"}
       open={open}
       onCancel={() => dispatch(closeCreateTaskModal())}
       onOk={() => form.submit()}
-      okText="Create"
+      okText={editingTask ? "Save" : "Create"}
       cancelText="Cancel"
       destroyOnHidden
     >
@@ -59,21 +73,35 @@ const CreateTaskModal = () => {
         form={form}
         layout="vertical"
         onFinish={(values) => {
-          dispatch(
-            addTask({
-              id: uuidv4(),
-              ...values,
-              dueDate: values.dueDate
-                ? values.dueDate.format("YYYY-MM-DD")
-                : null,
-              createdAt: new Date().toISOString(),
-            }),
-          );
+          const taskData = {
+            ...(editingTask || {}),
+            ...values,
+            dueDate: values.dueDate
+              ? values.dueDate.format("YYYY-MM-DD")
+              : null,
+          };
 
-          notification.success({
-            title: "Task Created",
-            description: "Your task has been created successfully.",
-          });
+          if (editingTask) {
+            dispatch(updateTask(taskData));
+
+            notification.success({
+              message: "Task Updated",
+              description: "Task updated successfully.",
+            });
+          } else {
+            dispatch(
+              addTask({
+                id: uuidv4(),
+                ...taskData,
+                createdAt: new Date().toISOString(),
+              }),
+            );
+
+            notification.success({
+              message: "Task Created",
+              description: "Your task has been created successfully.",
+            });
+          }
 
           dispatch(closeCreateTaskModal());
           form.resetFields();

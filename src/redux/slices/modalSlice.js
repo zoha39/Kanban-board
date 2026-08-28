@@ -2,18 +2,22 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   createTaskOpen: false,
+  editingTask: null,
 };
 
 const modalSlice = createSlice({
   name: "modal",
   initialState,
+
   reducers: {
-    openCreateTaskModal: (state) => {
+    openCreateTaskModal: (state, action) => {
       state.createTaskOpen = true;
+      state.editingTask = action.payload || null;
     },
 
     closeCreateTaskModal: (state) => {
       state.createTaskOpen = false;
+      state.editingTask = null;
     },
   },
 });

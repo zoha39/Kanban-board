@@ -1,7 +1,19 @@
-import { DndContext, closestCorners } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCorners,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+
 import { arrayMove } from "@dnd-kit/sortable";
 import { useDispatch, useSelector } from "react-redux";
+import { useState } from "react";
+
 import StatusColumn from "./StatusColumn";
+import TaskCard from "./TaskCard";
 import { moveTask } from "../../redux/slices/taskSlice";
 
 const TaskBoard = () => {
@@ -10,8 +22,32 @@ const TaskBoard = () => {
 
   const dispatch = useDispatch();
 
+  const [activeTask, setActiveTask] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragStart = (event) => {
+    const task = tasks.find((task) => task.id === event.active.id);
+
+    setActiveTask(task);
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+  };
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
+
+    setActiveTask(null);
 
     if (!over) return;
 
@@ -23,8 +59,7 @@ const TaskBoard = () => {
 
     let updatedTasks = [...tasks];
 
-    // CASE 1 : Dropped on a COLUMN
-
+    // Dropped on a column
     if (over.data.current?.type === "column") {
       updatedTasks = updatedTasks.map((task) =>
         task.id === active.id
@@ -36,13 +71,13 @@ const TaskBoard = () => {
       );
     }
 
-    // CASE 2 : Dropped on another TASK
+    // Dropped on another task
     else if (over.data.current?.type === "task") {
       const overTask = tasks.find((task) => task.id === over.id);
 
       if (!overTask) return;
 
-      // ---------- Same Column ----------
+      // Same column reorder
       if (activeTask.statusId === overTask.statusId) {
         const oldIndex = updatedTasks.findIndex(
           (task) => task.id === active.id,
@@ -53,7 +88,7 @@ const TaskBoard = () => {
         updatedTasks = arrayMove(updatedTasks, oldIndex, newIndex);
       }
 
-      // ---------- Different Column ----------
+      // Move to another column
       else {
         updatedTasks = updatedTasks.map((task) =>
           task.id === active.id
@@ -70,12 +105,39 @@ const TaskBoard = () => {
   };
 
   return (
-    <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="flex gap-5 overflow-x-auto pb-4">
-        {statuses.map((status) => (
-          <StatusColumn key={status.id} status={status} />
-        ))}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragCancel={handleDragCancel}
+      onDragEnd={handleDragEnd}
+    >
+      <div
+        className="
+    min-h-screen
+    bg-gray-100
+    rounded-xl
+    p-6
+    overflow-x-auto
+  "
+      >
+        <div
+          className="
+      flex
+      gap-6
+      items-start
+      pb-4
+    "
+        >
+          {statuses.map((status) => (
+            <StatusColumn key={status.id} status={status} />
+          ))}
+        </div>
       </div>
+
+      <DragOverlay>
+        {activeTask ? <TaskCard task={activeTask} isDraggingOverlay /> : null}
+      </DragOverlay>
     </DndContext>
   );
 };
